@@ -7,6 +7,7 @@ const Bird = require('../modele/schema_bird');
 //lire tous les oiseaux
 router.get("/", async (req, res) => {
     const birds = await Bird.find();
+    console.log(birds)
     res.json(birds);
 });
 
@@ -76,10 +77,9 @@ router.patch("/:id", async (req, res) => {
         }
 
         res.status(200).json({
-            message : "oiseau modifié !",
-            bird : updatedBird
+            ...updatedBird._doc
         });
-        
+
     } catch (error) {
         res.status(400).json({ error: err.message });
     }
