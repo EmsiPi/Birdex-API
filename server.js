@@ -6,8 +6,11 @@ const app = express();
 const PORT = 3000;
 const cors = require('cors');
 
+const path = require('path');
+
 app.use(cors());
 app.use(express.json()); // pour le post 
+app.use('/images', express.static(path.join(__dirname, 'images')));
 
 //connexion mongo
 mongoose.connect(process.env.mongoURI)

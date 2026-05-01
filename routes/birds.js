@@ -3,6 +3,27 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const Bird = require('../modele/schema_bird');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+
+
+
+
+
+//Config du stockage pour les images 
+
+const storage = multer.diskStorage({
+    destination: (req, file, im) => {
+        im(null, 'images/');
+    },
+    filename: (req, file, im) => {
+        const uniqueSuffix = Date.now() + '-' + file.originalname;
+        im(null, uniqueSuffix);
+    }
+});
+
+const upload = multer({ storage: storage });
 
 //lire tous les oiseaux
 router.get("/", async (req, res) => {
@@ -12,13 +33,20 @@ router.get("/", async (req, res) => {
 });
 
 //ajouter un oiseau
-router.post("/", async (req, res) => {
+router.post('/', upload.single('image'), async (req, res) => {
+    console.log("Fichier reçu :", req.file);
+    console.log("Corps reçu :", req.body);
     try {
-        const bird = new Bird({
+        const birdData = new Bird({
             name: req.body.name,
             location: req.body.location,
-            date: req.body.date
+            date: req.body.date,
         });
+
+        if (req.file) {
+            birdData.urlImage = `${req.protocol}://${req.get('host')}/images/${req.file.filename}`;
+        }
+        const bird = new Bird(birdData);
 
         const savedBird = await bird.save();
         res.status(201).json(savedBird);
@@ -35,6 +63,20 @@ router.delete("/:id", async (req, res) => {
 
         if (!deletedBird) {
             return res.status(404).json({ error: "Oiseau non trouvé" });
+        }
+
+
+        //supprimer le fichier physiquement
+        if (deletedBird.urlImage) {
+            const filename = deletedBird.urlImage.split('/images/')[1];
+
+            fs.unlink(`images/${filename}`, (err) => {
+                if (err) {
+                    console.error("Erreur lors de la suppression du fichier physique:", err);
+                } else {
+                    console.log("Fichier image supprimé avec succès");
+                }
+            });
         }
 
         res.status(200).json({
