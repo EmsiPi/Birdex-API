@@ -106,10 +106,31 @@ router.get("/:id", async (req, res) => {
     }
 });
 
-router.patch("/:id", async (req, res) => {
-    try {
 
-        const updatedBird = await Bird.findByIdAndUpdate(req.params.id, req.body, {
+router.patch("/:id", upload.single('image'), async (req, res) => {
+    try {
+        let updateData = { ...req.body };
+        const birdToUp = await Bird.findById(req.params.id);
+
+        if (!birdToUp) {
+            return res.status(404).json({ error: "Oiseau non trouvé" });
+        }
+
+        if (req.file) {
+
+            const filename = birdToUp.urlImage.split('/images/')[1];
+
+            fs.unlink(`images/${filename}`, (err) => {
+                if (err) {
+                    console.error("Erreur lors de la suppression du fichier physique:", err);
+                } else {
+                    console.log("Fichier image supprimé avec succès");
+                }
+            });
+            updateData.urlImage = `${req.protocol}://${req.get('host')}/images/${req.file.filename}`;
+        }
+
+        const updatedBird = await Bird.findByIdAndUpdate(req.params.id, updateData, {
             new: true,
             runValidators: true
         });
@@ -118,18 +139,14 @@ router.patch("/:id", async (req, res) => {
             return res.status(404).json({ error: "Oiseau non trouvé" });
         }
 
-        res.status(200).json({
-            ...updatedBird._doc
-        });
+        res.status(200).json(updatedBird);
 
     } catch (error) {
-        res.status(400).json({ error: err.message });
+        res.status(400).json({ error: error.message });
     }
-}
+});
 
 
-
-)
 
 
 
